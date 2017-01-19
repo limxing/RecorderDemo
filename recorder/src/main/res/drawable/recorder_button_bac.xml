@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape>
+            <size android:width="80dp" android:height="80dp" />
+            <corners android:radius="80dp" />
+            <solid android:color="#eee"  />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <size android:width="80dp" android:height="80dp" />
+            <corners android:radius="80dp" />
+            <solid android:color="#ddd"  />
+        </shape>
+    </item>
+</selector>
