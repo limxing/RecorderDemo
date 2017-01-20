@@ -15,12 +15,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@+id/recorder_cap"
-        android:text="点击拍照，长按摄像"
-        android:textColor="#bbb"
-        android:textStyle="bold"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="10dp"
-        android:textSize="15sp"/>
+        android:text="点击拍照，长按摄像"
+        android:textColor="#bbb"
+        android:textSize="15sp"
+        android:textStyle="bold" />
 
     <ImageView
         android:id="@+id/recorder_cap"
@@ -42,23 +42,48 @@
             android:id="@+id/recorder_cancle"
             android:layout_width="80dp"
             android:layout_height="80dp"
-            android:visibility="gone"
             android:layout_marginLeft="40dp"
             android:background="@drawable/recorder_button_bac"
             android:scaleType="centerInside"
-            android:src="@drawable/recorder_back" />
+            android:src="@drawable/recorder_back"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/recorder_confirm"
             android:layout_width="80dp"
-            android:visibility="gone"
             android:layout_height="80dp"
             android:layout_alignParentRight="true"
             android:layout_marginRight="40dp"
             android:background="@drawable/recorder_button_bac"
             android:scaleType="centerInside"
-            android:src="@drawable/recorder_yes" />
+            android:src="@drawable/recorder_yes"
+            android:visibility="gone" />
     </RelativeLayout>
 
+    <Chronometer
+        android:id="@+id/recorder_timer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_margin="10dp"
+        android:text="00:00"
+        android:textColor="@android:color/white"
+        android:textSize="20dp"
+        android:visibility="visible" />
 
+    <ImageView
+        android:id="@+id/recorder_movie"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/recorder_movie" />
+    <TextView
+        android:id="@+id/recorder_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
+        android:textSize="18sp"
+        android:textColor="#fff"
+        android:layout_marginTop="20dp"
+        android:layout_marginLeft="20dp"
+        android:text="取消"/>
 </RelativeLayout>

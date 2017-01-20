@@ -9,8 +9,9 @@
         tools:context="me.leefeng.recorderdemo.MainActivity">
 
         <TextView
+            android:id="@+id/main_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Hello World!" />
+            android:text="结果：" />
     </RelativeLayout>
 </layout>

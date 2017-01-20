@@ -10,14 +10,17 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.media.ExifInterface;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.media.ThumbnailUtils;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -29,6 +32,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.Chronometer;
 import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
@@ -37,7 +41,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 
 /**
@@ -60,6 +66,10 @@ public class RecorderActivity extends AppCompatActivity {
     private View recorderConfirm;
     private View recorderCap;
     private String cameraPath;
+    private Chronometer recorderTimer;
+    private long countUp;
+    private View recorderMovie;
+    private String videoPicPath;
 
     public static void startActivityForResult(Activity activity, int requestCode) {
         Intent intent = new Intent(activity, RecorderActivity.class);
@@ -100,10 +110,11 @@ public class RecorderActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 if (motionEvent.getAction() == MotionEvent.ACTION_UP && recording) {
+                    cameraPath = null;
                     startOrStop();
                     recorderCancle.setVisibility(View.VISIBLE);
                     recorderConfirm.setVisibility(View.VISIBLE);
-                    recorderCap.setVisibility(View.GONE);
+                    recorderCap.setVisibility(View.INVISIBLE);
                     return true;
                 }
                 return false;
@@ -119,8 +130,10 @@ public class RecorderActivity extends AppCompatActivity {
         findViewById(R.id.recorder_cap).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (recorderCancle.getVisibility() == View.VISIBLE) {
+                    return;
+                }
                 if (myPictureCallback.isPreviewing) {
-                    mCamera.startPreview();
                     myPictureCallback.setPreviewing(false);
                 }
                 mCamera.takePicture(new Camera.ShutterCallback() {
@@ -131,7 +144,13 @@ public class RecorderActivity extends AppCompatActivity {
                 }, null, myPictureCallback);
                 recorderCancle.setVisibility(View.VISIBLE);
                 recorderConfirm.setVisibility(View.VISIBLE);
-                recorderCap.setVisibility(View.GONE);
+                recorderCap.setVisibility(View.INVISIBLE);
+            }
+        });
+        findViewById(R.id.recorder_back).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onBackPressed();
             }
         });
     }
@@ -147,27 +166,92 @@ public class RecorderActivity extends AppCompatActivity {
                 if (cameraPath != null)
                     new File(cameraPath).delete();
                 mCamera.startPreview();
+                if (url_file != null)
+                    new File(url_file).delete();
+                if (videoPicPath != null)
+                    new File(videoPicPath).delete();
+                cameraPath = null;
+                url_file = null;
+                videoPicPath = null;
             }
         });
         recorderConfirm = findViewById(R.id.recorder_confirm);
         recorderConfirm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Intent intent = new Intent();
+                intent.putExtra("videoPath", url_file);
+                intent.putExtra("cameraPath", cameraPath);
+                intent.putExtra("videoPicPath", videoPicPath);
 
+                setResult(Activity.RESULT_OK, intent);
+                finish();
             }
         });
         recorderCap = findViewById(R.id.recorder_cap);
 
-
+        cameraPreview.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    v.setPressed(false);
+                    try {
+                        focusOnTouch(event);
+                    } catch (Exception e) {
+                    }
+                }
+                return true;
+            }
+        });
+        recorderTimer = (Chronometer) findViewById(R.id.recorder_timer);
+        recorderMovie = findViewById(R.id.recorder_movie);
     }
 
+    //对焦
+    private void focusOnTouch(MotionEvent event) {
+        if (mCamera != null) {
+            Camera.Parameters parameters = mCamera.getParameters();
+            if (parameters.getMaxNumMeteringAreas() > 0) {
+                Rect rect = calculateFocusArea(event.getX(), event.getY());
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                List<Camera.Area> meteringAreas = new ArrayList<Camera.Area>();
+                meteringAreas.add(new Camera.Area(rect, 800));
+                parameters.setFocusAreas(meteringAreas);
+                mCamera.setParameters(parameters);
+                mCamera.autoFocus(null);
+            } else {
+                mCamera.autoFocus(null);
+            }
+        }
+    }
+
+    private static final int FOCUS_AREA_SIZE = 500;
+
+    private Rect calculateFocusArea(float x, float y) {
+        int left = clamp(Float.valueOf((x / w) * 2000 - 1000).intValue(), FOCUS_AREA_SIZE);
+        int top = clamp(Float.valueOf((y / h) * 2000 - 1000).intValue(), FOCUS_AREA_SIZE);
+        return new Rect(left, top, left + FOCUS_AREA_SIZE, top + FOCUS_AREA_SIZE);
+    }
+
+    private int clamp(int touchCoordinateInCameraReper, int focusAreaSize) {
+        int result;
+        if (Math.abs(touchCoordinateInCameraReper) + focusAreaSize / 2 > 1000) {
+            if (touchCoordinateInCameraReper > 0) {
+                result = 1000 - focusAreaSize / 2;
+            } else {
+                result = -1000 + focusAreaSize / 2;
+            }
+        } else {
+            result = touchCoordinateInCameraReper - focusAreaSize / 2;
+        }
+        return result;
+    }
 
     MyPictureCallback myPictureCallback = new MyPictureCallback();
 
 
     private final class MyPictureCallback implements Camera.PictureCallback {
 
-        private byte[] picData;
         private boolean isPreviewing;
 
         public boolean isPreviewing() {
@@ -180,15 +264,13 @@ public class RecorderActivity extends AppCompatActivity {
 
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
-
-            this.picData = data;
             camera.stopPreview(); // 拍完照后，重新开始预览
             try {
                 String path = saveToSDCard(data); // 保存图片到sd卡中
-                ExifInterface newExif = new ExifInterface(path);
-                newExif.setAttribute("Orientation", "90");
-                newExif.saveAttributes();
-
+//                ExifInterface newExif = new ExifInterface(path);
+//                newExif.setAttribute("Orientation", "90");
+//                newExif.saveAttributes();
+                url_file = null;
                 cameraPath = BitmapHelper.compressBitmap(path, w, h, true, getPreviewDegree());
                 isPreviewing = true;
             } catch (Exception e) {
@@ -222,16 +304,56 @@ public class RecorderActivity extends AppCompatActivity {
 
     }
 
+    //计时器
+    private void startChronometer() {
+        recorderTimer.setVisibility(View.VISIBLE);
+        final long startTime = SystemClock.elapsedRealtime();
+        recorderTimer.setOnChronometerTickListener(new Chronometer.OnChronometerTickListener() {
+            @Override
+            public void onChronometerTick(Chronometer arg0) {
+                countUp = (SystemClock.elapsedRealtime() - startTime) / 1000;
+                if (countUp % 2 == 0) {
+                    recorderMovie.setVisibility(View.VISIBLE);
+                } else {
+                    recorderMovie.setVisibility(View.INVISIBLE);
+                }
+
+                String asText = String.format("%02d", countUp / 60) + ":" + String.format("%02d", countUp % 60);
+                recorderTimer.setText(asText);
+            }
+        });
+        recorderTimer.start();
+    }
+
+    private void stopChronometer() {
+        recorderTimer.stop();
+        recorderMovie.setVisibility(View.INVISIBLE);
+        recorderTimer.setVisibility(View.INVISIBLE);
+    }
+
     private void startOrStop() {
+
         if (recording) {
+            recording = false;
+            stopChronometer();//计时器
             //如果正在录制点击这个按钮表示录制完成
+//            mediaRecorder.setOnErrorListener(null);
+//            mediaRecorder.setOnInfoListener(null);
+//            mediaRecorder.setPreviewDisplay(null);
             mediaRecorder.stop(); //停止
-//                    stopChronometer();计时器
+//
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
             releaseMediaRecorder();
-            recording = false;
-            Bitmap bitmap = getVideoThumbnail(url_file, w, h, MediaStore.Images.Thumbnails.FULL_SCREEN_KIND);
             try {
+                mCamera.stopPreview();
+//                MediaPlayer mediaPlayer = new MediaPlayer();
+//                mediaPlayer.setDataSource(url_file);
+//                mediaPlayer.setDisplay(cameraPreview.getHolder());
+//                mediaPlayer.prepare();
+//                mediaPlayer.start();
+
+                Bitmap bitmap = getVideoThumbnail(url_file, w, h, MediaStore.Images.Thumbnails.FULL_SCREEN_KIND);
+
                 Date date = new Date();
                 SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss"); // 格式化时间
                 String filename = format.format(date) + ".jpg";
@@ -244,6 +366,7 @@ public class RecorderActivity extends AppCompatActivity {
                 FileOutputStream outputStream = new FileOutputStream(jpgFile); // 文件输出流
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream);
                 outputStream.close(); // 关闭输出流
+                videoPicPath = jpgFile.getAbsolutePath();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -261,26 +384,21 @@ public class RecorderActivity extends AppCompatActivity {
                 finish();
             }
             //开始录制视频
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    // If there are stories, add them to the table
-                    try {
-                        mediaRecorder.start();
-//                                startChronometer();计时器
-                        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                        } else {
-                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-                        }
-                    } catch (final Exception ex) {
-                        Log.i("---", "Exception in thread");
-                        setResult(Activity.RESULT_CANCELED);
-                        releaseCamera();
-                        releaseMediaRecorder();
-                        finish();
-                    }
+            try {
+                mediaRecorder.start();
+                startChronometer();//计时器
+                if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                } else {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                 }
-            });
+            } catch (final Exception ex) {
+                Log.i("---", "Exception in thread");
+                setResult(Activity.RESULT_CANCELED);
+                releaseCamera();
+                releaseMediaRecorder();
+                finish();
+            }
             recording = true;
         }
     }
@@ -290,6 +408,9 @@ public class RecorderActivity extends AppCompatActivity {
         super.onDestroy();
         releaseCamera();
         releaseMediaRecorder();
+        if (mediaRecorder != null)
+            mediaRecorder.release();
+        mediaRecorder = null;
     }
 
     /**
@@ -319,14 +440,18 @@ public class RecorderActivity extends AppCompatActivity {
      * @return
      */
     private boolean prepareMediaRecorder() {
-        if (mediaRecorder != null) {
-            return true;
-        }
-        mediaRecorder = new MediaRecorder();
         mCamera.unlock();
+        if (mediaRecorder == null)
+            mediaRecorder = new MediaRecorder();
         mediaRecorder.setCamera(mCamera);
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+//            mediaRecorder.setPreviewDisplay(cameraPreview);
+        mediaRecorder.setProfile(CamcorderProfile.get(quality));
+        File file = new File("/mnt/sdcard/videokit");
+        if (!file.exists()) {
+            file.mkdirs();
+        }
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             if (cameraFront) {
                 mediaRecorder.setOrientationHint(270);
@@ -334,25 +459,12 @@ public class RecorderActivity extends AppCompatActivity {
                 mediaRecorder.setOrientationHint(90);
             }
         }
-
-        mediaRecorder.setProfile(CamcorderProfile.get(quality));
-        File file = new File("/mnt/sdcard/videokit");
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-        Date d = new Date();
-        String timestamp = String.valueOf(d.getTime());
-//        url_file = Environment.getExternalStorageDirectory().getPath() + "/videoKit" + timestamp + ".mp4";
         url_file = "/mnt/sdcard/videokit/in.mp4";
-//        url_file = "/mnt/sdcard/videokit/" + timestamp + ".mp4";
-
         File file1 = new File(url_file);
         if (file1.exists()) {
             file1.delete();
         }
-
         mediaRecorder.setOutputFile(url_file);
-
 //        https://developer.android.com/reference/android/media/MediaRecorder.html#setMaxDuration(int) 不设置则没有限制
 //        mediaRecorder.setMaxDuration(CameraConfig.MAX_DURATION_RECORD); //设置视频文件最长时间 60s.
 //        https://developer.android.com/reference/android/media/MediaRecorder.html#setMaxFileSize(int) 不设置则没有限制
@@ -401,14 +513,14 @@ public class RecorderActivity extends AppCompatActivity {
                 //尝试寻找后置摄像头
                 cameraId = findBackFacingCamera();
 //            if (flash) {
-//                mBinding.cameraPreview.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-//                mBinding.buttonFlash.setImageResource(R.mipmap.ic_flash_on_white);
+//                cameraPreview.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+//                buttonFlash.setImageResource(R.mipmap.ic_flash_on_white);
 //            }
             } else if (!frontal) {
                 cameraId = findBackFacingCamera();
 //            if (flash) {
-//                mBinding.cameraPreview.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-//                mBinding.buttonFlash.setImageResource(R.mipmap.ic_flash_on_white);
+//                cameraPreview.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+//                buttonFlash.setImageResource(R.mipmap.ic_flash_on_white);
 //            }
             }
 
@@ -421,9 +533,8 @@ public class RecorderActivity extends AppCompatActivity {
     private void releaseMediaRecorder() {
         if (mediaRecorder != null) {
             mediaRecorder.reset();
-            mediaRecorder.release();
-            mediaRecorder = null;
-            mCamera.lock();
+            if (mCamera != null)
+                mCamera.lock();
         }
     }
 
@@ -529,4 +640,15 @@ public class RecorderActivity extends AppCompatActivity {
         return degree;
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        if (cameraPath != null)
+            new File(cameraPath).delete();
+        mCamera.startPreview();
+        if (url_file != null)
+            new File(url_file).delete();
+        if (videoPicPath != null)
+            new File(videoPicPath).delete();
+    }
 }
