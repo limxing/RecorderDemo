@@ -111,10 +111,11 @@ public class RecorderActivity extends AppCompatActivity {
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 if (motionEvent.getAction() == MotionEvent.ACTION_UP && recording) {
                     cameraPath = null;
-                    startOrStop();
-                    recorderCancle.setVisibility(View.VISIBLE);
-                    recorderConfirm.setVisibility(View.VISIBLE);
-                    recorderCap.setVisibility(View.INVISIBLE);
+                    if (startOrStop()) {
+                        recorderCancle.setVisibility(View.VISIBLE);
+                        recorderConfirm.setVisibility(View.VISIBLE);
+                        recorderCap.setVisibility(View.INVISIBLE);
+                    }
                     return true;
                 }
                 return false;
@@ -123,6 +124,7 @@ public class RecorderActivity extends AppCompatActivity {
         findViewById(R.id.recorder_cap).setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
+                recorderMovie.setVisibility(View.VISIBLE);
                 startOrStop();
                 return true;
             }
@@ -312,11 +314,11 @@ public class RecorderActivity extends AppCompatActivity {
             @Override
             public void onChronometerTick(Chronometer arg0) {
                 countUp = (SystemClock.elapsedRealtime() - startTime) / 1000;
-                if (countUp % 2 == 0) {
-                    recorderMovie.setVisibility(View.VISIBLE);
-                } else {
-                    recorderMovie.setVisibility(View.INVISIBLE);
-                }
+//                if (countUp % 2 == 0) {
+//                    recorderMovie.setVisibility(View.VISIBLE);
+//                } else {
+//                    recorderMovie.setVisibility(View.INVISIBLE);
+//                }
 
                 String asText = String.format("%02d", countUp / 60) + ":" + String.format("%02d", countUp % 60);
                 recorderTimer.setText(asText);
@@ -331,7 +333,7 @@ public class RecorderActivity extends AppCompatActivity {
         recorderTimer.setVisibility(View.INVISIBLE);
     }
 
-    private void startOrStop() {
+    private boolean startOrStop() {
 
         if (recording) {
             recording = false;
@@ -340,7 +342,15 @@ public class RecorderActivity extends AppCompatActivity {
 //            mediaRecorder.setOnErrorListener(null);
 //            mediaRecorder.setOnInfoListener(null);
 //            mediaRecorder.setPreviewDisplay(null);
-            mediaRecorder.stop(); //停止
+            try {
+                mediaRecorder.stop(); //停止
+            } catch (Exception e) {
+                releaseMediaRecorder();
+                Toast.makeText(this, "时间太短啦", Toast.LENGTH_LONG).show();
+                if (url_file != null)
+                    new File(url_file).delete();
+                return false;
+            }
 //
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
             releaseMediaRecorder();
@@ -401,6 +411,7 @@ public class RecorderActivity extends AppCompatActivity {
             }
             recording = true;
         }
+        return true;
     }
 
     @Override
