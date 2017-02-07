@@ -1,7 +1,9 @@
 package me.leefeng.recorderdemo;
 
+import android.Manifest;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -11,6 +13,7 @@ import me.leefeng.recorderdemo.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 0;
     private ActivityMainBinding mBinding;
 
     @Override
@@ -19,6 +22,9 @@ public class MainActivity extends AppCompatActivity {
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
 //        setContentView(R.layout.activity_main);
         RecorderActivity.startActivityForResult(this, 0);
+//        ActivityCompat.requestPermissions(this,
+//                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+//                MY_PERMISSIONS_REQUEST_READ_CONTACTS);
     }
 
     @Override

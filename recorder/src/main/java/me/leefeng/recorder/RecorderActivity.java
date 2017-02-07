@@ -88,6 +88,7 @@ public class RecorderActivity extends AppCompatActivity {
         setContentView(R.layout.activity_recorder);
         w = getResources().getDisplayMetrics().widthPixels;
         h = getResources().getDisplayMetrics().heightPixels;
+        Log.i("limxing", "onCreate: "+w+"=="+h);
         cameraPreview = (CameraPreview) findViewById(R.id.camera_preview);
         initView();
 
@@ -181,11 +182,11 @@ public class RecorderActivity extends AppCompatActivity {
         recorderConfirm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
                 Intent intent = new Intent();
                 intent.putExtra("videoPath", url_file);
                 intent.putExtra("cameraPath", cameraPath);
                 intent.putExtra("videoPicPath", videoPicPath);
-
                 setResult(Activity.RESULT_OK, intent);
                 finish();
             }
@@ -536,6 +537,11 @@ public class RecorderActivity extends AppCompatActivity {
             }
 
             mCamera = Camera.open(cameraId);
+
+//            Camera.Parameters parameters = mCamera.getParameters();
+//            mCamera.getSupportedPictureSizes()得到当前所支持的照片大小，然后
+//            parameters.setPictureSize(w, h);
+//            mCamera.setParameters(parameters);
             cameraPreview.refreshCamera(mCamera);
             reloadQualities(cameraId);
         }
@@ -559,6 +565,13 @@ public class RecorderActivity extends AppCompatActivity {
             quality = CamcorderProfile.QUALITY_480P;
         } else if (CamcorderProfile.hasProfile(idCamera, CamcorderProfile.QUALITY_2160P)) {
             quality = CamcorderProfile.QUALITY_2160P;
+        }
+        Toast.makeText(this,quality+"",Toast.LENGTH_LONG).show();
+        Camera.Parameters parameters = mCamera.getParameters();
+//获取摄像头支持的各种分辨率
+        List<Camera.Size> supportedPictureSizes = parameters.getSupportedPictureSizes();
+        for (Camera.Size size:supportedPictureSizes){
+            Log.i("limxing", "reloadQualities: "+size.toString());
         }
     }
 
