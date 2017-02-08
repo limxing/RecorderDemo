@@ -220,6 +220,8 @@ public class RecorderActivity extends AppCompatActivity {
                 List<Camera.Area> meteringAreas = new ArrayList<Camera.Area>();
                 meteringAreas.add(new Camera.Area(rect, 800));
                 parameters.setFocusAreas(meteringAreas);
+
+
                 mCamera.setParameters(parameters);
                 mCamera.autoFocus(null);
             } else {
@@ -274,6 +276,7 @@ public class RecorderActivity extends AppCompatActivity {
 //                newExif.setAttribute("Orientation", "90");
 //                newExif.saveAttributes();
                 url_file = null;
+                Log.i("limxing", "onPictureTaken: "+w+"=="+h);
                 cameraPath = BitmapHelper.compressBitmap(path, w, h, true, getPreviewDegree());
                 isPreviewing = true;
             } catch (Exception e) {
@@ -537,11 +540,18 @@ public class RecorderActivity extends AppCompatActivity {
             }
 
             mCamera = Camera.open(cameraId);
-
-//            Camera.Parameters parameters = mCamera.getParameters();
+            Camera.Parameters parameters = mCamera.getParameters();
+            List<Camera.Size> list=parameters.getSupportedPictureSizes();
+//            for (Camera.Size size:list){
+//                Log.i("limxing", "focusOnTouch: "+size.width+"=="+size.height);
+//            }
+            Camera.Size size=list.get(list.size()/2);
+            parameters.setPictureSize(size.width, size.height); // 设置保存的图片尺寸
+            parameters.setJpegQuality(100); // 设置照片质量
+//
 //            mCamera.getSupportedPictureSizes()得到当前所支持的照片大小，然后
 //            parameters.setPictureSize(w, h);
-//            mCamera.setParameters(parameters);
+            mCamera.setParameters(parameters);
             cameraPreview.refreshCamera(mCamera);
             reloadQualities(cameraId);
         }
