@@ -30,4 +30,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.0.1'
     testCompile 'junit:junit:4.12'
     compile project(':recorder')
+    compile files('libs/JavaAPIforKml-2.2.0.jar')
 }

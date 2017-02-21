@@ -7,6 +7,10 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import java.io.File;
+
+import de.micromata.opengis.kml.v_2_2_0.Feature;
+import de.micromata.opengis.kml.v_2_2_0.Kml;
 import me.leefeng.recorder.RecorderActivity;
 import me.leefeng.recorderdemo.databinding.ActivityMainBinding;
 
@@ -25,6 +29,10 @@ public class MainActivity extends AppCompatActivity {
 //        ActivityCompat.requestPermissions(this,
 //                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
 //                MY_PERMISSIONS_REQUEST_READ_CONTACTS);
+
+        Kml kml = Kml.unmarshal(new File(""));
+        Feature feature = kml.getFeature();
+
     }
 
     @Override

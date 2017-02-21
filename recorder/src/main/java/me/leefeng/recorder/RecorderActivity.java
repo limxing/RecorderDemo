@@ -45,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-
 /**
  * Created by FengTing on 2017/1/18.
  */
@@ -88,7 +87,7 @@ public class RecorderActivity extends AppCompatActivity {
         setContentView(R.layout.activity_recorder);
         w = getResources().getDisplayMetrics().widthPixels;
         h = getResources().getDisplayMetrics().heightPixels;
-        Log.i("limxing", "onCreate: "+w+"=="+h);
+//        Log.i("limxing", "onCreate: "+w+"=="+h);
         cameraPreview = (CameraPreview) findViewById(R.id.camera_preview);
         initView();
 
@@ -276,7 +275,7 @@ public class RecorderActivity extends AppCompatActivity {
 //                newExif.setAttribute("Orientation", "90");
 //                newExif.saveAttributes();
                 url_file = null;
-                Log.i("limxing", "onPictureTaken: "+w+"=="+h);
+//                Log.i("limxing", "onPictureTaken: "+w+"=="+h);
                 cameraPath = BitmapHelper.compressBitmap(path, w, h, true, getPreviewDegree());
                 isPreviewing = true;
             } catch (Exception e) {
