@@ -43,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
             String cameraPath = data.getStringExtra("cameraPath");
             String videoPicPath = data.getStringExtra("videoPicPath");
 
-
             mBinding.mainText.append("\n"+path + "\n" + cameraPath + "\n" + videoPicPath);
 
         }
